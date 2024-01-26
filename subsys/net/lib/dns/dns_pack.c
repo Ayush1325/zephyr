@@ -169,6 +169,13 @@ int dns_unpack_answer(struct dns_msg_t *dns_msg, int dname_ptr, uint32_t *ttl,
 				     pos, len);
 		return 0;
 
+	case DNS_RR_TYPE_PTR:
+	case DNS_RR_TYPE_SRV:
+	case DNS_RR_TYPE_TXT:
+		/* DNS-SD queryies will probably return these as well. Ignore them for now */
+		set_dns_msg_response(dns_msg, DNS_RESPONSE_IGNORE, pos, len);
+		return 0;
+
 	default:
 		/* malformed dns answer */
 		return -EINVAL;

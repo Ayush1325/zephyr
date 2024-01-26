@@ -645,6 +645,9 @@ query_known:
 			answer_ptr = dns_msg->response_position;
 			break;
 
+		case DNS_RESPONSE_IGNORE:
+			break;
+
 		default:
 			ret = DNS_EAI_FAIL;
 			goto quit;
@@ -1123,6 +1126,8 @@ int dns_resolve_name(struct dns_resolve_context *ctx,
 	int failure = 0;
 	bool mdns_query = false;
 	uint8_t hop_limit;
+	size_t query_len = strlen(query);
+	const char mdns_local[] = ".local";
 
 	if (!ctx || !query || !cb) {
 		return -EINVAL;
@@ -1232,10 +1237,8 @@ try_resolve:
 	 * for details.
 	 */
 	if (IS_ENABLED(CONFIG_MDNS_RESOLVER)) {
-		const char *ptr = strrchr(query, '.');
-
-		/* Note that we memcmp() the \0 here too */
-		if (ptr && !memcmp(ptr, (const void *){ ".local" }, 7)) {
+		const char *ptr = query + (query_len - sizeof(mdns_local) + 1);
+		if (ptr && !memcmp(ptr, mdns_local, sizeof(mdns_local))) {
 			mdns_query = true;
 
 			ctx->queries[i].id = 0;

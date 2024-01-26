@@ -33,6 +33,8 @@ extern "C" {
 enum dns_query_type {
 	/** IPv4 query */
 	DNS_QUERY_TYPE_A = 1,
+	/** PTR query */
+	DNS_QUERY_TYPE_PTR = 12,
 	/** IPv6 query */
 	DNS_QUERY_TYPE_AAAA = 28
 };
@@ -376,6 +378,15 @@ int dns_resolve_name(struct dns_resolve_context *ctx,
 		     dns_resolve_cb_t cb,
 		     void *user_data,
 		     int32_t timeout);
+
+static inline int dns_resolve_service(struct dns_resolve_context *ctx,
+		     const char *query,
+		     uint16_t *dns_id,
+		     dns_resolve_cb_t cb,
+		     void *user_data,
+		     int32_t timeout) {
+	return dns_resolve_name(ctx, query, DNS_QUERY_TYPE_PTR, dns_id, cb, user_data, timeout);
+}
 
 /**
  * @brief Get default DNS context.
