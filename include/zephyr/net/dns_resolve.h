@@ -379,14 +379,12 @@ int dns_resolve_name(struct dns_resolve_context *ctx,
 		     void *user_data,
 		     int32_t timeout);
 
-static inline int dns_resolve_service(struct dns_resolve_context *ctx,
+int dns_resolve_service(struct dns_resolve_context *ctx,
 		     const char *query,
 		     uint16_t *dns_id,
 		     dns_resolve_cb_t cb,
 		     void *user_data,
-		     int32_t timeout) {
-	return dns_resolve_name(ctx, query, DNS_QUERY_TYPE_PTR, dns_id, cb, user_data, timeout);
-}
+		     int32_t timeout);
 
 /**
  * @brief Get default DNS context.

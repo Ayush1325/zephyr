@@ -26,6 +26,7 @@ LOG_MODULE_REGISTER(net_dns_resolve, CONFIG_DNS_RESOLVER_LOG_LEVEL);
 #include <zephyr/net/dns_resolve.h>
 #include "dns_pack.h"
 #include "dns_internal.h"
+#include "../../ip/ipv6.h"
 
 #define DNS_SERVER_COUNT CONFIG_DNS_RESOLVER_MAX_SERVERS
 #define SERVER_COUNT     (DNS_SERVER_COUNT + DNS_MAX_MCAST_SERVERS)
@@ -646,6 +647,115 @@ query_known:
 			break;
 
 		case DNS_RESPONSE_IGNORE:
+			NET_DBG("[%u] Ignoring answer type %d",
+				*dns_id, answer_type);
+			break;
+
+		default:
+			ret = DNS_EAI_FAIL;
+			goto quit;
+		}
+
+		/* Update the answer offset to point to the next RR (answer) */
+		dns_msg->answer_offset += dns_msg->response_position -
+							dns_msg->answer_offset;
+		dns_msg->answer_offset += dns_msg->response_length;
+
+		server_idx++;
+	}
+
+	/* Parse additional records */
+	server_idx = 0;
+	while (server_idx < dns_header_arcount(dns_msg->msg)) {
+		ret = dns_unpack_answer(dns_msg, answer_ptr, &ttl,
+					&answer_type);
+		if (ret < 0) {
+			ret = DNS_EAI_FAIL;
+			goto quit;
+		}
+
+		NET_DBG("[%u] Additional answer type %d",
+			*dns_id, answer_type);
+		switch (dns_msg->response_type) {
+		case DNS_RESPONSE_IP:
+			if (*query_idx >= 0) {
+				goto query_known1;
+			}
+
+			query_name = dns_msg->msg + dns_msg->query_offset;
+
+			/* Add \0 and query type (A or AAAA) to the hash */
+			*query_hash = crc16_ansi(query_name,
+						 strlen(query_name) + 1 + 2);
+
+			*query_idx = get_slot_by_id(ctx, *dns_id, *query_hash);
+			if (*query_idx < 0) {
+				ret = DNS_EAI_SYSTEM;
+				goto quit;
+			}
+
+query_known1:
+			if (answer_type == DNS_RR_TYPE_A) {
+				address_size = DNS_IPV4_LEN;
+				addr = (uint8_t *)&net_sin(&info.ai_addr)->
+								sin_addr;
+				info.ai_family = AF_INET;
+				info.ai_addr.sa_family = AF_INET;
+				info.ai_addrlen = sizeof(struct sockaddr_in);
+
+			} else if (answer_type == DNS_QUERY_TYPE_AAAA) {
+				/* We cannot resolve IPv6 address if IPv6 is
+				 * disabled. The reason being that
+				 * "struct sockaddr" does not have enough space
+				 * for IPv6 address in that case.
+				 */
+#if defined(CONFIG_NET_IPV6)
+				address_size = DNS_IPV6_LEN;
+				addr = (uint8_t *)&net_sin6(&info.ai_addr)->
+								sin6_addr;
+				info.ai_family = AF_INET6;
+				info.ai_addr.sa_family = AF_INET6;
+				info.ai_addrlen = sizeof(struct sockaddr_in6);
+#else
+				ret = DNS_EAI_FAMILY;
+				goto quit;
+#endif
+			} else {
+				ret = DNS_EAI_FAMILY;
+				goto quit;
+			}
+
+			if (dns_msg->response_length < address_size) {
+				/* it seems this is a malformed message */
+				ret = DNS_EAI_FAIL;
+				goto quit;
+			}
+
+			if ((dns_msg->response_position + address_size) >
+			    dns_msg->msg_size) {
+				/* Too short message */
+				ret = DNS_EAI_FAIL;
+				goto quit;
+			}
+
+			src = dns_msg->msg + dns_msg->response_position;
+			memcpy(addr, src, address_size);
+
+			invoke_query_callback(DNS_EAI_INPROGRESS, &info,
+					      &ctx->queries[*query_idx]);
+			items++;
+			break;
+
+		case DNS_RESPONSE_CNAME_NO_IP:
+			/* Instead of using the QNAME at DNS_QUERY_POS,
+			 * we will use this CNAME
+			 */
+			answer_ptr = dns_msg->response_position;
+			break;
+
+		case DNS_RESPONSE_IGNORE:
+			NET_DBG("[%u] Ignoring answer type %d",
+				*dns_id, answer_type);
 			break;
 
 		default:
@@ -1483,6 +1593,17 @@ unlock:
 
 	return err;
 }
+
+int dns_resolve_service(struct dns_resolve_context *ctx,
+		     const char *query,
+		     uint16_t *dns_id,
+		     dns_resolve_cb_t cb,
+		     void *user_data,
+		     int32_t timeout) {
+	return dns_resolve_name(ctx, query, DNS_QUERY_TYPE_PTR, dns_id, cb, user_data, timeout);
+}
+
+
 
 struct dns_resolve_context *dns_resolve_get_default(void)
 {
