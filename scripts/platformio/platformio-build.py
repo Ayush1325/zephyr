@@ -1221,7 +1221,7 @@ def get_zephyr_venv_dir():
     # The name of the Zephyr venv contains the Zephyr version to avoid possible
     # conflicts and unnecessary reinstallation of Python dependencies in PlatformIO venv
     zephyr_version = version.get_original_version(
-        platform.get_package_version("framework-zephyr")
+        platform.get_package_version("framework-zephyr").split("+")[0]
     )
     return os.path.join(
         env.subst("$PROJECT_CORE_DIR"), "penv", ".zephyr-" + zephyr_version
