@@ -33,14 +33,13 @@ static int board_antenna_init(const struct device *dev);
 static void board_cc13xx_rf_callback(RF_Handle client, RF_GlobalEvent events, void *arg);
 
 const RFCC26XX_HWAttrsV2 RFCC26XX_hwAttrs = {
-	.hwiPriority        = INT_PRI_LEVEL7,
-	.swiPriority        = 0,
+	.hwiPriority = INT_PRI_LEVEL7,
+	.swiPriority = 0,
 	.xoscHfAlwaysNeeded = true,
 	/* RF driver callback for custom antenna switching */
 	.globalCallback = board_cc13xx_rf_callback,
 	/* Subscribe to events */
-	.globalEventMask = (RF_GlobalEventRadioSetup |
-			RF_GlobalEventRadioPowerDown),
+	.globalEventMask = (RF_GlobalEventRadioSetup | RF_GlobalEventRadioPowerDown),
 };
 
 PINCTRL_DT_INST_DEFINE(0);
@@ -75,7 +74,7 @@ static int board_antenna_init(const struct device *dev)
  */
 static void board_cc13xx_rf_callback(RF_Handle client, RF_GlobalEvent events, void *arg)
 {
-	bool    sub1GHz   = false;
+	bool sub1GHz = false;
 	uint8_t loDivider = 0;
 	int i;
 
@@ -86,8 +85,8 @@ static void board_cc13xx_rf_callback(RF_Handle client, RF_GlobalEvent events, vo
 
 	if (events & RF_GlobalEventRadioSetup) {
 		/* Decode the current PA configuration. */
-		RF_TxPowerTable_PAType paType = (RF_TxPowerTable_PAType)
-			RF_getTxPower(client).paType;
+		RF_TxPowerTable_PAType paType =
+			(RF_TxPowerTable_PAType)RF_getTxPower(client).paType;
 		/* Decode the generic argument as a setup command. */
 		RF_RadioSetup *setupCommand = (RF_RadioSetup *)arg;
 
@@ -96,14 +95,16 @@ static void board_cc13xx_rf_callback(RF_Handle client, RF_GlobalEvent events, vo
 		case (CMD_BLE5_RADIO_SETUP):
 			loDivider = RF_LODIVIDER_MASK & setupCommand->common.loDivider;
 			/* Sub-1GHz front-end. */
-			if (loDivider != 0)
+			if (loDivider != 0) {
 				sub1GHz = true;
+			}
 			break;
 		case (CMD_PROP_RADIO_DIV_SETUP):
 			loDivider = RF_LODIVIDER_MASK & setupCommand->prop_div.loDivider;
 			/* Sub-1GHz front-end. */
-			if (loDivider != 0)
+			if (loDivider != 0) {
 				sub1GHz = true;
+			}
 			break;
 		default:
 			break;
