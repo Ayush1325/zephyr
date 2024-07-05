@@ -84,7 +84,7 @@
 		bias-disable;
 	};
 	board_ant_tx_pa_on: board_ant_tx_pa_on {
-		pinmux = <29 IOC_PORT_RFC_GPO3>;
+		pinmux = <29 IOC_PORT_RFC_GPO1>;
 		bias-disable;
 	};
 	board_ant_subg_off: board_ant_subg_off {
