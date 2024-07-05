@@ -342,6 +342,15 @@ manifest:
     - name: zcbor
       revision: 75d088037eb237b18e7ec1f47c9ce494b9b95aab
       path: modules/lib/zcbor
+    - name: greybus-node
+      submodules: true
+      revision: upstream-1
+      path: modules/greybus
+      url: https://openbeagle.org/ayush1325/greybus-for-zephyr
+    - name: greybus-host
+      path: modules/greybus-host
+      revision: c10409a2087911fcc3ccda61dfa145fcdf579546
+      url: https://openbeagle.org/gsoc/greybus/cc1352-firmware
 
   self:
     path: zephyr
