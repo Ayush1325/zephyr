@@ -26,9 +26,6 @@
 #define PINCTRL_STATE_ANT_SUBG    1
 #define PINCTRL_STATE_ANT_SUBG_PA 2
 
-#define BOARD_ANT_GPIO_PA   0
-#define BOARD_ANT_GPIO_SUBG 1
-
 static int board_antenna_init(const struct device *dev);
 static void board_cc13xx_rf_callback(RF_Handle client, RF_GlobalEvent events, void *arg);
 
@@ -46,11 +43,7 @@ PINCTRL_DT_INST_DEFINE(0);
 DEVICE_DT_INST_DEFINE(0, board_antenna_init, NULL, NULL, NULL, POST_KERNEL,
 		      CONFIG_BOARD_ANTENNA_INIT_PRIO, NULL);
 
-#define GPIO_DT_SPEC(n, p, i) GPIO_DT_SPEC_GET_BY_IDX(n, p, i),
-
 static const struct pinctrl_dev_config *ant_pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(0);
-static const struct gpio_dt_spec ant_gpios[] = {
-	DT_FOREACH_PROP_ELEM(DT_NODELABEL(antenna_mux0), gpios, GPIO_DT_SPEC)};
 
 /**
  * Antenna switch GPIO init routine.
@@ -58,14 +51,9 @@ static const struct gpio_dt_spec ant_gpios[] = {
 static int board_antenna_init(const struct device *dev)
 {
 	ARG_UNUSED(dev);
-	int i;
 
 	/* default pinctrl configuration: set all antenna mux control pins as GPIOs */
 	pinctrl_apply_state(ant_pcfg, PINCTRL_STATE_DEFAULT);
-	/* set all GPIOs to 0 (all RF paths disabled) */
-	for (i = 0; i < ARRAY_SIZE(ant_gpios); i++) {
-		gpio_pin_configure_dt(&ant_gpios[i], 0);
-	}
 	return 0;
 }
 
@@ -76,12 +64,6 @@ static void board_cc13xx_rf_callback(RF_Handle client, RF_GlobalEvent events, vo
 {
 	bool sub1GHz = false;
 	uint8_t loDivider = 0;
-	int i;
-
-	/* Clear all antenna switch GPIOs (for all cases). */
-	for (i = 0; i < ARRAY_SIZE(ant_gpios); i++) {
-		gpio_pin_configure_dt(&ant_gpios[i], 0);
-	}
 
 	if (events & RF_GlobalEventRadioSetup) {
 		/* Decode the current PA configuration. */
@@ -117,8 +99,6 @@ static void board_cc13xx_rf_callback(RF_Handle client, RF_GlobalEvent events, vo
 				pinctrl_apply_state(ant_pcfg, PINCTRL_STATE_ANT_SUBG_PA);
 			} else {
 				pinctrl_apply_state(ant_pcfg, PINCTRL_STATE_ANT_SUBG);
-				/* Manually set the sub-GHZ antenna switch DIO */
-				gpio_pin_configure_dt(&ant_gpios[BOARD_ANT_GPIO_SUBG], 1);
 			}
 		}
 	} else {
