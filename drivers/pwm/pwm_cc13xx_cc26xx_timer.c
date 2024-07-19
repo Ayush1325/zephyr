@@ -58,7 +58,16 @@ static void write_value(const struct pwm_cc13xx_cc26xx_config *config, uint32_t 
 static int set_period_and_pulse(const struct pwm_cc13xx_cc26xx_config *config, uint32_t period,
 				uint32_t pulse)
 {
+	pinctrl_soc_pin_t pin = config->pcfg->states[0].pins[0];
 	uint32_t match_value = pulse;
+
+	/* Setting pulse = period seems to miss 1 cycle causes sudden LOW (or HIGH) depending on
+	 * polarity. This is a workaround to manually set the pin HIGH.
+	 */
+	if (period == match_value) {
+		GPIO_writeDio(pin.pin, 1);
+		goto early_exit;
+	}
 
 	if (pulse == 0U) {
 		TimerDisable(config->gpt_base, TIMER_B);
@@ -91,6 +100,7 @@ static int set_period_and_pulse(const struct pwm_cc13xx_cc26xx_config *config, u
 		TimerEnable(config->gpt_base, TIMER_B);
 	}
 
+early_exit:
 	LOG_DBG("Period and pulse successfully set.");
 	return 0;
 }
