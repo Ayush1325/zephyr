@@ -22,6 +22,7 @@ LOG_MODULE_REGISTER(led_gpio, CONFIG_LED_LOG_LEVEL);
 struct led_gpio_config {
 	size_t num_leds;
 	const struct gpio_dt_spec *led;
+	const struct pinctrl_dev_config *pcfg;
 };
 
 static int led_gpio_set_brightness(const struct device *dev, uint32_t led, uint8_t value)
@@ -59,6 +60,12 @@ static int led_gpio_init(const struct device *dev)
 		err = -ENODEV;
 	}
 
+	err = pinctrl_apply_state(config->pcfg, PINCTRL_STATE_DEFAULT);
+	if (err < 0 && err != -ENOENT) {
+		LOG_ERR("failed to apply pinctrl");
+		return err;
+	}
+
 	for (size_t i = 0; (i < config->num_leds) && !err; i++) {
 		const struct gpio_dt_spec *led = &config->led[i];
 
@@ -92,6 +99,7 @@ static const struct gpio_dt_spec gpio_dt_spec_##i[] = {		\
 static const struct led_gpio_config led_gpio_config_##i = {	\
 	.num_leds	= ARRAY_SIZE(gpio_dt_spec_##i),	\
 	.led		= gpio_dt_spec_##i,			\
+	.pcfg		= PINCTRL_DT_INST_DEV_CONFIG_GET(i),	\
 };								\
 								\
 DEVICE_DT_INST_DEFINE(i, &led_gpio_init, NULL,			\
