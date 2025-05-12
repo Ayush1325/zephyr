@@ -39,6 +39,8 @@
 
 	leds: leds {
 		compatible = "gpio-leds";
+		pinctrl-0 = <&led_4_default>;
+		pinctrl-names = "default";
 
 		led4: led_4 {
 			gpios = <&gpio0 3 GPIO_ACTIVE_HIGH>;
@@ -54,7 +56,5 @@
 };
 
 &gpio0 {
-	pinctrl-0 = <&led_4_default>;
-	pinctrl-names = "default";
 	status = "okay";
 };
