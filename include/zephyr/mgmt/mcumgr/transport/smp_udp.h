@@ -14,6 +14,8 @@
 #ifndef ZEPHYR_INCLUDE_MGMT_SMP_UDP_H_
 #define ZEPHYR_INCLUDE_MGMT_SMP_UDP_H_
 
+#include <zephyr/net/net_ip.h>
+
 /**
  * @brief This allows to use the MCUmgr SMP protocol over UDP.
  * @defgroup mcumgr_transport_udp UDP transport
@@ -45,6 +47,16 @@ int smp_udp_open(void);
  * @return	-errno code on failure.
  */
 int smp_udp_close(void);
+
+#ifdef CONFIG_SMP_CLIENT
+#ifdef CONFIG_MCUMGR_TRANSPORT_UDP_IPV4
+void smp_udp4_host(const struct sockaddr *addr);
+#endif
+
+#ifdef CONFIG_MCUMGR_TRANSPORT_UDP_IPV6
+void smp_udp6_host(const struct sockaddr *addr);
+#endif
+#endif
 
 #ifdef __cplusplus
 }

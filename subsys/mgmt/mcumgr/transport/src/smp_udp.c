@@ -48,6 +48,7 @@ enum proto_type {
 
 struct config {
 	int sock;
+	struct sockaddr host;
 	enum proto_type proto;
 	struct k_sem network_ready_sem;
 	struct smp_transport smp_transport;
@@ -158,6 +159,22 @@ static int smp_udp_ud_copy(struct net_buf *dst, const struct net_buf *src)
 
 	return MGMT_ERR_EOK;
 }
+
+#ifdef CONFIG_MCUMGR_TRANSPORT_UDP_IPV4
+static void smp_udp4_ud_init(struct net_buf *nb) {
+	struct sockaddr *ud = net_buf_user_data(nb);
+
+	memcpy(ud, &smp_udp_configs.ipv4.host, sizeof(smp_udp_configs.ipv6.host));
+}
+#endif
+
+#ifdef CONFIG_MCUMGR_TRANSPORT_UDP_IPV6
+static void smp_udp6_ud_init(struct net_buf *nb) {
+	struct sockaddr *ud = net_buf_user_data(nb);
+
+	memcpy(ud, &smp_udp_configs.ipv6.host, sizeof(smp_udp_configs.ipv6.host));
+}
+#endif
 
 static int create_socket(enum proto_type proto, int *sock)
 {
@@ -367,6 +384,21 @@ int smp_udp_close(void)
 	return 0;
 }
 
+
+#ifdef CONFIG_SMP_CLIENT
+#ifdef CONFIG_MCUMGR_TRANSPORT_UDP_IPV4
+void smp_udp4_host(const struct sockaddr *addr) {
+	memcpy(&smp_udp_configs.ipv4.host, addr, sizeof(*addr));
+}
+#endif
+
+#ifdef CONFIG_MCUMGR_TRANSPORT_UDP_IPV6
+void smp_udp6_host(const struct sockaddr *addr) {
+	memcpy(&smp_udp_configs.ipv6.host, addr, sizeof(*addr));
+}
+#endif
+#endif
+
 static void smp_udp_start(void)
 {
 	int rc;
@@ -381,6 +413,7 @@ static void smp_udp_start(void)
 	smp_udp_configs.ipv4.smp_transport.functions.output = smp_udp4_tx;
 	smp_udp_configs.ipv4.smp_transport.functions.get_mtu = smp_udp_get_mtu;
 	smp_udp_configs.ipv4.smp_transport.functions.ud_copy = smp_udp_ud_copy;
+	smp_udp_configs.ipv4.smp_transport.functions.ud_init = smp_udp4_ud_init;
 
 	rc = smp_transport_init(&smp_udp_configs.ipv4.smp_transport);
 #ifdef CONFIG_SMP_CLIENT
@@ -403,6 +436,7 @@ static void smp_udp_start(void)
 	smp_udp_configs.ipv6.smp_transport.functions.output = smp_udp6_tx;
 	smp_udp_configs.ipv6.smp_transport.functions.get_mtu = smp_udp_get_mtu;
 	smp_udp_configs.ipv6.smp_transport.functions.ud_copy = smp_udp_ud_copy;
+	smp_udp_configs.ipv6.smp_transport.functions.ud_init = smp_udp6_ud_init;
 
 	rc = smp_transport_init(&smp_udp_configs.ipv6.smp_transport);
 #ifdef CONFIG_SMP_CLIENT
