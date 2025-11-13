@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
+add_subdirectory_ifdef(CONFIG_RPMSG_SERVICE_LINUX rpmsg_service_linux)
 add_subdirectory_ifdef(CONFIG_RPMSG_SERVICE rpmsg_service)
 add_subdirectory_ifdef(CONFIG_IPC_SERVICE ipc_service)
 add_subdirectory_ifdef(CONFIG_OPENAMP open-amp)

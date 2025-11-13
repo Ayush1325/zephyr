@@ -3,11 +3,8 @@
 
 config UART_RPMSG
 	bool "Use RPMSG uart"
-	select IPM
-	select OPENAMP
+	depends on RPMSG_SERVICE
 	depends on DT_HAS_RPMSG_UART_ENABLED
-	depends on (HEAP_MEM_POOL_SIZE > 0)
-	depends on (OPENAMP_RSC_TABLE_NUM_RPMSG_BUFF > 0)
 	help
 	  Enable uart using RPMSG.
 

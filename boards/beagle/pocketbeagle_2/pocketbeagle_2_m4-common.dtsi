@@ -17,8 +17,10 @@
 		 */
 		zephyr,flash = &sram_icode;
 		zephyr,sram = &sram_dcode;
-		zephyr,console = &uart0;
-		zephyr,shell-uart = &uart0;
+		zephyr,console = &main_uart0;
+		zephyr,shell-uart = &main_uart0;
+		// zephyr,console = &rpmsg0;
+		// zephyr,shell-uart = &rpmsg0;
 		zephyr,ipc = &ipc0;
 		zephyr,ipc_shm = &ddr0;
 		zephyr,sram1 = &ddr1;
@@ -60,8 +62,6 @@
 
 	rpmsg0: rpmsg0 {
 		compatible = "rpmsg-uart";
-		ipc-shm = <&ddr0>;
-		ipc = <&ipc0>;
 	};
 };
 
@@ -73,5 +73,12 @@
 };
 
 &mcu_rti0 {
+	status = "okay";
+};
+
+&main_uart0 {
+	current-speed = <115200>;
+	pinctrl-0 = <&main_uart0_pins_default>;
+	pinctrl-names = "default";
 	status = "okay";
 };
