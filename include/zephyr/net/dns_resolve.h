@@ -516,6 +516,9 @@ struct dns_resolve_context {
 		 * cannot be used to find correct pending query.
 		 */
 		uint16_t query_hash;
+
+		/** Flag to indicate that the callback has been called at least once. */
+		bool cb_called;
 	} queries[DNS_NUM_CONCUR_QUERIES];
 
 	/** Is this context in use */

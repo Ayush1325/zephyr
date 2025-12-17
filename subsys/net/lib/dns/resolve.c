@@ -1555,6 +1555,11 @@ static int dns_read(struct dns_resolve_context *ctx,
 	}
 #endif /* CONFIG_DNS_RESOLVER_PACKET_FORWARDING */
 
+	/* Mark the query as success. Only used in case of DNS-SD query which need to wait for
+	 * multiple responses.
+	 */
+	ctx->queries[query_idx].cb_called = true;
+
 	/* DNS service discovery can have multiple responses. */
 	if (ctx->queries[query_idx].query_type != DNS_QUERY_TYPE_PTR) {
 		invoke_query_callback(ret, NULL, &ctx->queries[query_idx]);
@@ -1712,7 +1717,11 @@ static int dns_write(struct dns_resolve_context *ctx,
 /* Must be invoked with context lock held */
 static void dns_resolve_cancel_slot(struct dns_resolve_context *ctx, int slot)
 {
-	invoke_query_callback(DNS_EAI_CANCELED, NULL, &ctx->queries[slot]);
+	if (ctx->queries[slot].cb_called) {
+		invoke_query_callback(DNS_EAI_ALLDONE, NULL, &ctx->queries[slot]);
+	} else {
+		invoke_query_callback(DNS_EAI_CANCELED, NULL, &ctx->queries[slot]);
+	}
 
 	release_query(&ctx->queries[slot]);
 }
@@ -2090,6 +2099,7 @@ try_resolve:
 	ctx->queries[i].user_data = user_data;
 	ctx->queries[i].ctx = ctx;
 	ctx->queries[i].query_hash = 0;
+	ctx->queries[i].cb_called = false;
 
 	k_work_init_delayable(&ctx->queries[i].timer, query_timeout);
 
