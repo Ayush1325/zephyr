@@ -1555,10 +1555,13 @@ static int dns_read(struct dns_resolve_context *ctx,
 	}
 #endif /* CONFIG_DNS_RESOLVER_PACKET_FORWARDING */
 
-	invoke_query_callback(ret, NULL, &ctx->queries[query_idx]);
+	/* DNS service discovery can have multiple responses. */
+	if (ctx->queries[query_idx].query_type != DNS_QUERY_TYPE_PTR) {
+		invoke_query_callback(ret, NULL, &ctx->queries[query_idx]);
 
-	/* Marks the end of the results */
-	release_query(&ctx->queries[query_idx]);
+		/* Marks the end of the results */
+		release_query(&ctx->queries[query_idx]);
+	}
 
 	return 0;
 
