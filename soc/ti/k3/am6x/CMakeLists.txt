@@ -21,7 +21,9 @@ elseif(CONFIG_SOC_SERIES_AM6X_M4)
   set(SOC_LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/m4/linker.ld CACHE INTERNAL "")
 elseif(CONFIG_SOC_SERIES_AM6X_R5)
   zephyr_sources(r5/soc.c)
-  zephyr_sources_ifdef(CONFIG_ARM_MPU r5/arm_mpu_regions.c)
+  zephyr_sources(r5/boot.S)
+  zephyr_sources(r5/MpuP_armv7r_asm.S)
+  zephyr_sources(r5/MpuP_armv7r.c)
 
   zephyr_include_directories(r5)
 
