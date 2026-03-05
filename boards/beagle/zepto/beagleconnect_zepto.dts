@@ -1,0 +1,78 @@
+/*
+ * Copyright (c) 2026 BeagleBoard.org Foundation
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+
+#include <ti/mspm0/l/mspm0l1117.dtsi>
+#include <zephyr/dt-bindings/led/led.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <ti/mspm0/l/mspm0l111x-pinctrl.dtsi>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+
+/ {
+	model = "BeagleBoard.org BeagleConnect Zepto";
+	compatible = "beagle,beagleconnect_zepto_mspm0l1117";
+
+	aliases {
+		led0 = &led0;
+		led1 = &led1;
+		sw0 = &button0;
+	};
+
+	chosen {
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+		zephyr,console = &uart0;
+	};
+
+	gpio_keys {
+		compatible = "gpio-keys";
+
+		button0: button_0 {
+			gpios = <&gpioa 18 GPIO_ACTIVE_LOW>;
+			zephyr,code = <INPUT_KEY_0>;
+		};
+	};
+
+	leds: leds {
+		compatible = "gpio-leds";
+
+		led0: led_0 {
+			gpios = <&gpioa 13 GPIO_ACTIVE_HIGH>;
+		};
+	};
+
+	led1: ws2812 {
+		compatible = "worldsemi,ws2812-gpio";
+
+		chain-length = <1>;
+		color-mapping = <LED_COLOR_ID_GREEN
+				 LED_COLOR_ID_RED
+				 LED_COLOR_ID_BLUE>;
+
+		gpios = <&gpioa 15 0>;
+	};
+};
+
+&flash0 {
+	status = "okay";
+};
+
+&pinctrl {
+	status = "okay";
+};
+
+&uart0 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart0_tx_pa10 &uart0_rx_pa11>;
+};
+
+&gpioa {
+	status = "okay";
+	// pinctrl-names = "default";
+	// pinctrl-0 = <&gpioa_13_pa13 &gpioa_18_pa18 &gpioa_15_pa15>;
+};
