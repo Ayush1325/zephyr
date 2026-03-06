@@ -20,12 +20,21 @@
 		led0 = &led0;
 		led1 = &led1;
 		sw0 = &button0;
+		greybus-transport = &i2c0;
 	};
 
 	chosen {
 		zephyr,sram = &sram0;
 		zephyr,flash = &flash0;
 		zephyr,console = &uart0;
+	};
+
+	zephyr,greybus {
+		gbbundle1 {
+			status = "okay";
+			compatible = "zephyr,greybus-bundle-lights";
+			lights = <&leds>;
+		};
 	};
 
 	gpio_keys {
@@ -75,4 +84,10 @@
 	status = "okay";
 	// pinctrl-names = "default";
 	// pinctrl-0 = <&gpioa_13_pa13 &gpioa_18_pa18 &gpioa_15_pa15>;
+};
+
+&i2c0 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&ic20_sda_pa0 &i2c0_scl_pa01>;
 };
