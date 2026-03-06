@@ -270,7 +270,7 @@ manifest:
       groups:
         - hal
     - name: hal_ti
-      revision: b141deb61a34e257afa16381c5d25e2f3d56d5a5
+      revision: pull/80/head
       path: modules/hal/ti
       groups:
         - hal
@@ -396,6 +396,10 @@ manifest:
     - name: zcbor
       revision: 9164bd18dcd88ff9d9ef98279501fc1093571017
       path: modules/lib/zcbor
+    - name: Greybus-Zephyr
+      path: modules/lib/greybus
+      revision: pull/95/head
+      url: https://github.com/beagleboard/greybus-zephyr
   # zephyr-keep-sorted-stop
 
   self:
