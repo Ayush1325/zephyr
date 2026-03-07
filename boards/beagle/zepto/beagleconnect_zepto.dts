@@ -35,6 +35,12 @@
 			compatible = "zephyr,greybus-bundle-lights";
 			lights = <&leds>;
 		};
+
+		gbbundle2 {
+			status = "okay";
+			compatible = "zephyr,greybus-bundle-lights";
+			light-strips = <&led1>;
+		};
 	};
 
 	gpio_keys {

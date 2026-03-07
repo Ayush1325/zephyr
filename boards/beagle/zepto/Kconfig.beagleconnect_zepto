@@ -9,13 +9,13 @@ config BOARD_BEAGLECONNECT_ZEPTO
 if WS2812_STRIP_GPIO
 
 config DELAY_T1H
-	default 22
+	default 25
 
 config DELAY_T1L
-	default 19
+	default 10
 
 config DELAY_T0H
-	default 11
+	default 9
 
 config DELAY_T0L
 	default 25
