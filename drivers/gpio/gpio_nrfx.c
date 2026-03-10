@@ -647,6 +647,18 @@ pm_init:
 	return pm_device_driver_init(port, gpio_nrfx_pm_hook);
 }
 
+#ifdef CONFIG_GPIO_GET_REGS_SET_CLR
+static int gpio_nrfx_port_get_regs(const struct device *port, gpio_raw_regs_t *regs)
+{
+	const struct gpio_nrfx_cfg *cfg = get_port_cfg(port);
+
+	regs->set = &cfg->port->OUTSET;
+	regs->clr = &cfg->port->OUTCLR;
+
+	return 0;
+}
+#endif /* CONFIG_GPIO_GET_REGS_SET_CLR */
+
 static DEVICE_API(gpio, gpio_nrfx_drv_api_funcs) = {
 	.pin_configure = gpio_nrfx_pin_configure,
 	.port_get_raw = gpio_nrfx_port_get_raw,
@@ -654,6 +666,9 @@ static DEVICE_API(gpio, gpio_nrfx_drv_api_funcs) = {
 	.port_set_bits_raw = gpio_nrfx_port_set_bits_raw,
 	.port_clear_bits_raw = gpio_nrfx_port_clear_bits_raw,
 	.port_toggle_bits = gpio_nrfx_port_toggle_bits,
+#ifdef CONFIG_GPIO_GET_REGS_SET_CLR
+	.port_get_regs = gpio_nrfx_port_get_regs,
+#endif /* CONFIG_GPIO_GET_REGS_SET_CLR */
 #ifdef CONFIG_GPIO_NRFX_INTERRUPT
 	.pin_interrupt_configure = gpio_nrfx_pin_interrupt_configure,
 	.manage_callback = gpio_nrfx_manage_callback,
