@@ -3,3 +3,21 @@
 
 config BOARD_BEAGLECONNECT_ZEPTO
 	select SOC_MSPM0L1117
+
+# Calculated using following formula:
+# (32_000_000 / 1_000_000_000) * delay_required_ns
+if WS2812_STRIP_GPIO
+
+config DELAY_T1H
+	default 22
+
+config DELAY_T1L
+	default 19
+
+config DELAY_T0H
+	default 11
+
+config DELAY_T0L
+	default 25
+
+endif

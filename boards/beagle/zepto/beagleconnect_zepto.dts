@@ -18,7 +18,7 @@
 
 	aliases {
 		led0 = &led0;
-		led1 = &led1;
+		led-strip = &led1;
 		sw0 = &button0;
 		greybus-transport = &i2c0;
 	};
