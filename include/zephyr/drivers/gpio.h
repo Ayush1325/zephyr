@@ -27,6 +27,12 @@
 #include <zephyr/device.h>
 #include <zephyr/dt-bindings/gpio/gpio.h>
 
+#if defined(CONFIG_GPIO_GET_REGS_SET_CLR)
+#include "./gpio/gpio_set_clr.h"
+#elif defined(CONFIG_GPIO_GET_REGS_OUT)
+#include "./gpio/gpio_out.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -833,6 +839,9 @@ __subsystem struct gpio_driver_api {
 			       struct gpio_callback *cb,
 			       bool set);
 	uint32_t (*get_pending_int)(const struct device *dev);
+#if defined(CONFIG_GPIO_GET_REGS_SET_CLR) || defined(CONFIG_GPIO_GET_REGS_OUT)
+	int (*port_get_regs)(const struct device *port, gpio_raw_regs_t *regs);
+#endif
 #ifdef CONFIG_GPIO_GET_DIRECTION
 	int (*port_get_direction)(const struct device *port, gpio_port_pins_t map,
 				  gpio_port_pins_t *inputs, gpio_port_pins_t *outputs);
@@ -1915,6 +1924,31 @@ static inline int z_impl_gpio_get_pending_int(const struct device *dev)
 	SYS_PORT_TRACING_FUNC_EXIT(gpio, get_pending_int, dev, ret);
 	return ret;
 }
+
+#if defined(CONFIG_GPIO_GET_REGS_SET_CLR) || defined(CONFIG_GPIO_GET_REGS_OUT)
+/**
+ * @brief Function to get raw GPIO registers.
+ *
+ * The purpose of this function is to return pointers to the GPIO registers. This is intended for
+ * time-sensitive gpio bitbang drivers, to avoid function call overhead.
+ *
+ * @param dev Pointer to the device structure for the driver instance.
+ * @param regs Pointer to the gpio_port_regs structure which is populated by this function.
+ *
+ * @retval 0 for success.
+ * @retval -ENOSYS If driver does not implement the operation
+ */
+static inline int gpio_port_get_regs(const struct device *dev, gpio_raw_regs_t *regs)
+{
+	const struct gpio_driver_api *api = (const struct gpio_driver_api *)dev->api;
+
+	if (api->port_get_regs == NULL) {
+		return -ENOSYS;
+	}
+
+	return api->port_get_regs(dev, regs);
+}
+#endif
 
 /**
  * @}

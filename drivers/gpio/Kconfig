@@ -93,6 +93,25 @@ config GPIO_ENABLE_DISABLE_INTERRUPT
 	  on/off the interrupt signal without changing other registers, such as
 	  pending register, etc. The driver must implement it to work.
 
+choice
+	prompt "Support for querying gpio set/clear registers"
+	help
+	  This option provides APIs to fetch the set/clear registers for a GPIO
+	  controller. This enabled GPIO toggling with minimal CPU cycles. The
+	  driver must implement it to work.
+
+config GPIO_GET_REGS_SET_CLR
+	bool "Use SET/CLEAR registers"
+	help
+	  This option provides fast gpio functions based on set/clr registers.
+
+config GPIO_GET_REGS_OUT
+	bool "Use out register"
+	help
+	  This option provides fast gpio functions based on out registers.
+
+endchoice # GPIO_GET_REGS
+
 # zephyr-keep-sorted-start
 source "drivers/gpio/Kconfig.ad559x"
 source "drivers/gpio/Kconfig.adp5585"
