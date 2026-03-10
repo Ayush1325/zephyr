@@ -367,6 +367,18 @@ static int gpio_mspm0_port_get_direction(const struct device *port,
 }
 #endif /* CONFIG_GPIO_GET_DIRECTION */
 
+#ifdef CONFIG_GPIO_GET_REGS_SET_CLR
+static int gpio_mspm0_port_get_regs(const struct device *port, gpio_raw_regs_t *regs)
+{
+	const struct gpio_mspm0_config *config = port->config;
+
+	regs->set = &config->base->DOUTSET31_0;
+	regs->clr = &config->base->DOUTCLR31_0;
+
+	return 0;
+}
+#endif /* CONFIG_GPIO_GET_REGS_SET_CLR */
+
 static DEVICE_API(gpio, gpio_mspm0_driver_api) = {
 	.pin_configure = gpio_mspm0_pin_configure,
 #ifdef CONFIG_GPIO_GET_CONFIG
@@ -380,6 +392,9 @@ static DEVICE_API(gpio, gpio_mspm0_driver_api) = {
 	.pin_interrupt_configure = gpio_mspm0_pin_interrupt_configure,
 	.manage_callback = gpio_mspm0_manage_callback,
 	.get_pending_int = gpio_mspm0_get_pending_int,
+#ifdef CONFIG_GPIO_GET_REGS_SET_CLR
+	.port_get_regs = gpio_mspm0_port_get_regs,
+#endif /* CONFIG_GPIO_GET_REGS_SET_CLR */
 #ifdef CONFIG_GPIO_GET_DIRECTION
 	.port_get_direction = gpio_mspm0_port_get_direction,
 #endif /* CONFIG_GPIO_GET_DIRECTION */
