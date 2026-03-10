@@ -807,6 +807,55 @@ enum gpio_int_trig {
 	GPIO_INT_TRIG_WAKE_BOTH = GPIO_INT_LOW_0 | GPIO_INT_HIGH_1 | GPIO_INT_WAKEUP,
 };
 
+/**
+ * @brief Raw GPIO register access structure.
+ *
+ * This structure provides direct access to GPIO port registers for reading
+ * and manipulating pin states. Each member points to a memory-mapped GPIO
+ * register controlling a specific operation on the GPIO port.
+ */
+struct gpio_raw_regs {
+	/**
+	 * @brief GPIO input register.
+	 *
+	 * Reading this register returns the current logic level of each GPIO pin.
+	 * Each bit corresponds to one GPIO pin in the port.
+	 */
+	const volatile uint32_t *in;
+
+	/**
+	 * @brief GPIO output register.
+	 *
+	 * Reading returns the current output state of GPIO pins.
+	 * Writing updates the output value of all pins in the port.
+	 */
+	volatile uint32_t *out;
+
+	/**
+	 * @brief GPIO set register.
+	 *
+	 * Writing 1 to a bit sets the corresponding GPIO pin to active/high.
+	 * Writing 0 has no effect.
+	 */
+	volatile uint32_t *set;
+
+	/**
+	 * @brief GPIO clear register.
+	 *
+	 * Writing 1 to a bit clears the corresponding GPIO pin to inactive/low.
+	 * Writing 0 has no effect.
+	 */
+	volatile uint32_t *clear;
+
+	/**
+	 * @brief GPIO toggle register.
+	 *
+	 * Writing 1 to a bit toggles the corresponding GPIO pin state.
+	 * Writing 0 has no effect.
+	 */
+	volatile uint32_t *toggle;
+};
+
 __subsystem struct gpio_driver_api {
 	int (*pin_configure)(const struct device *port, gpio_pin_t pin,
 			     gpio_flags_t flags);
@@ -833,6 +882,9 @@ __subsystem struct gpio_driver_api {
 			       struct gpio_callback *cb,
 			       bool set);
 	uint32_t (*get_pending_int)(const struct device *dev);
+#ifdef CONFIG_GPIO_RAW_REGS
+	int (*port_get_raw_regs)(const struct device *port, struct gpio_raw_regs *regs);
+#endif /* CONFIG_GPIO_RAW_REGS */
 #ifdef CONFIG_GPIO_GET_DIRECTION
 	int (*port_get_direction)(const struct device *port, gpio_port_pins_t map,
 				  gpio_port_pins_t *inputs, gpio_port_pins_t *outputs);
@@ -1915,6 +1967,127 @@ static inline int z_impl_gpio_get_pending_int(const struct device *dev)
 	SYS_PORT_TRACING_FUNC_EXIT(gpio, get_pending_int, dev, ret);
 	return ret;
 }
+
+#ifdef CONFIG_GPIO_RAW_REGS
+/**
+ * @brief Function to get raw GPIO registers.
+ *
+ * The purpose of this function is to return pointers to the GPIO registers. This is intended for
+ * time-sensitive gpio bitbang drivers, to avoid function call overhead.
+ *
+ * @param dev Pointer to the device structure for the driver instance.
+ * @param regs Pointer to the gpio_raw_regs structure which is populated by this function.
+ *
+ * @retval 0 for success.
+ * @retval -ENOSYS If driver does not implement the operation
+ *
+ * NOTE: a success response does not mean that all registers are populated. It just means that all
+ * registers supported by underlying hardware are populated, with the rest being set to NULL. It is
+ * user's responsibility to check for NULL registers before use.
+ */
+static inline int gpio_port_get_raw_regs(const struct device *dev, struct gpio_raw_regs *regs)
+{
+	const struct gpio_driver_api *api = (const struct gpio_driver_api *)dev->api;
+
+	if (api->port_get_raw_regs == NULL) {
+		return -ENOSYS;
+	}
+
+	return api->port_get_raw_regs(dev, regs);
+}
+
+/**
+ * @brief Set one or more GPIO pins to a high state.
+ *
+ * Writes to the hardware "set" register to drive the specified pins high
+ * without affecting the state of other pins.
+ *
+ * @param regs  GPIO register block, typically obtained via
+ *              gpio_port_get_regs().
+ * @param bits  Bitmask of pins to set high. Each bit corresponds to a GPIO pin;
+ *              a value of 1 sets the respective pin high.
+ */
+static inline void gpio_raw_set(const struct gpio_raw_regs regs, uint32_t bits)
+{
+	*regs.set = bits;
+}
+
+/**
+ * @brief Clear one or more GPIO pins to a low state.
+ *
+ * Writes to the hardware "clear" register to drive the specified pins low
+ * without affecting the state of other pins.
+ *
+ * @param regs  GPIO register block, typically obtained via
+ *              gpio_port_get_regs().
+ * @param bits  Bitmask of pins to clear. Each bit corresponds to a GPIO pin;
+ *              a value of 1 clears the respective pin (sets it low).
+ */
+static inline void gpio_raw_clear(const struct gpio_raw_regs regs, uint32_t bits)
+{
+	*regs.clear = bits;
+}
+
+/**
+ * @brief Read the current GPIO input state.
+ *
+ * Reads the hardware input register and returns the logic level of all pins.
+ *
+ * @param regs GPIO register block, typically obtained via
+ *             gpio_port_get_regs().
+ *
+ * @return Bitmask representing the current logic level of all GPIO pins.
+ */
+static inline uint32_t gpio_raw_in(const struct gpio_raw_regs regs)
+{
+	return *regs.in;
+}
+
+/**
+ * @brief Read the current GPIO output state.
+ *
+ * Reads the hardware output register and returns the current output values.
+ *
+ * @param regs GPIO register block, typically obtained via
+ *             gpio_port_get_regs().
+ *
+ * @return Bitmask representing the current output state of all GPIO pins.
+ */
+static inline uint32_t gpio_raw_out(const struct gpio_raw_regs regs)
+{
+	return *regs.out;
+}
+
+/**
+ * @brief Write GPIO output state.
+ *
+ * Writes directly to the hardware output register, updating all GPIO pins.
+ *
+ * @param regs GPIO register block, typically obtained via
+ *             gpio_port_get_regs().
+ * @param bits Bitmask of output values to write.
+ */
+static inline void gpio_raw_write(const struct gpio_raw_regs regs, uint32_t bits)
+{
+	*regs.out = bits;
+}
+
+/**
+ * @brief Toggle one or more GPIO pins.
+ *
+ * Writes to the hardware "toggle" register to invert the state of
+ * the specified pins.
+ *
+ * @param regs GPIO register block, typically obtained via
+ *             gpio_port_get_regs().
+ * @param bits Bitmask of pins to toggle. Each bit corresponds to a GPIO pin;
+ *             a value of 1 toggles the respective pin.
+ */
+static inline void gpio_raw_toggle(const struct gpio_raw_regs regs, uint32_t bits)
+{
+	*regs.toggle = bits;
+}
+#endif /* CONFIG_GPIO_RAW_REGS */
 
 /**
  * @}
