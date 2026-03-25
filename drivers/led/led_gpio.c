@@ -24,13 +24,13 @@ struct led_gpio_config {
 	const struct gpio_dt_spec *led;
 };
 
-static int led_gpio_set_brightness(const struct device *dev, uint32_t led, uint8_t value)
+static int led_gpio_set_brightness_raw(const struct device *dev, uint32_t led, uint32_t value)
 {
 
 	const struct led_gpio_config *config = dev->config;
 	const struct gpio_dt_spec *led_gpio;
 
-	if (led >= config->num_leds) {
+	if (led >= config->num_leds || value > 1) {
 		return -EINVAL;
 	}
 
@@ -67,8 +67,16 @@ static int led_gpio_init(const struct device *dev)
 	return err;
 }
 
+static int led_gpio_max_brightness(const struct device *dev, uint32_t led, uint32_t *max_brightness)
+{
+	*max_brightness = 1;
+
+	return 0;
+}
+
 static DEVICE_API(led, led_gpio_api) = {
-	.set_brightness	= led_gpio_set_brightness,
+	.set_brightness_raw	= led_gpio_set_brightness_raw,
+	.max_brightness = led_gpio_max_brightness,
 };
 
 #define LED_GPIO_DEVICE(i)					\
@@ -78,7 +86,7 @@ static const struct gpio_dt_spec gpio_dt_spec_##i[] = {		\
 };								\
 								\
 static const struct led_gpio_config led_gpio_config_##i = {	\
-	.num_leds	= ARRAY_SIZE(gpio_dt_spec_##i),	\
+	.num_leds	= ARRAY_SIZE(gpio_dt_spec_##i),		\
 	.led		= gpio_dt_spec_##i,			\
 };								\
 								\

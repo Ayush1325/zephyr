@@ -92,13 +92,12 @@ static int is31fl3733_select_page(const struct device *dev, uint8_t page)
 	return ret;
 }
 
-static int is31fl3733_led_set_brightness(const struct device *dev, uint32_t led, uint8_t value)
+static int is31fl3733_led_set_brightness_raw(const struct device *dev, uint32_t led, uint32_t value)
 {
 	const struct is31fl3733_config *config = dev->config;
 	int ret;
-	uint8_t led_brightness = (uint8_t)(((uint32_t)value * 255) / LED_BRIGHTNESS_MAX);
 
-	if (led >= IS31FL3733_MAX_LED) {
+	if (led >= IS31FL3733_MAX_LED || value > 255) {
 		return -EINVAL;
 	}
 
@@ -108,7 +107,7 @@ static int is31fl3733_led_set_brightness(const struct device *dev, uint32_t led,
 		return ret;
 	}
 
-	return i2c_reg_write_byte_dt(&config->bus, led, led_brightness);
+	return i2c_reg_write_byte_dt(&config->bus, led, value);
 }
 
 static int is31fl3733_led_write_channels(const struct device *dev, uint32_t start_channel,
@@ -263,9 +262,17 @@ int is31fl3733_current_limit(const struct device *dev, uint8_t limit)
 	return i2c_reg_write_byte_dt(&config->bus, GLOBAL_CURRENT_CTRL_REG, limit);
 }
 
+static int is31fl3733_led_max_brightness(const struct device *dev, uint32_t led, uint32_t *max_brightness)
+{
+	*max_brightness = 255;
+
+	return 0;
+}
+
 static DEVICE_API(led, is31fl3733_api) = {
-	.set_brightness = is31fl3733_led_set_brightness,
+	.set_brightness_raw = is31fl3733_led_set_brightness_raw,
 	.write_channels = is31fl3733_led_write_channels,
+	.max_brightness = is31fl3733_led_max_brightness,
 };
 
 #define IS31FL3733_DEVICE(n)                                                                       \

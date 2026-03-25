@@ -131,7 +131,7 @@ static int is31fl3194_set_color(const struct device *dev, uint32_t led, uint8_t 
 	return ret;
 }
 
-static int is31fl3194_set_brightness(const struct device *dev, uint32_t led, uint8_t value)
+static int is31fl3194_set_brightness_raw(const struct device *dev, uint32_t led, uint32_t value)
 {
 	const struct is31fl3194_config *config = dev->config;
 	const struct led_info *info = is31fl3194_led_to_info(config, led);
@@ -144,9 +144,6 @@ static int is31fl3194_set_brightness(const struct device *dev, uint32_t led, uin
 	if (info->num_colors != 1) {
 		return -ENOTSUP;
 	}
-
-	/* Rescale 0..100 to 0..255 */
-	value = value * 255 / LED_BRIGHTNESS_MAX;
 
 	ret = i2c_reg_write_byte_dt(&config->bus, led_channels[led], value);
 	if (ret == 0) {
@@ -299,10 +296,18 @@ static int is31fl3194_init(const struct device *dev)
 	return i2c_reg_write_byte_dt(&config->bus, IS31FL3194_CONF_REG, IS31FL3194_CONF_ENABLE);
 }
 
+static int is31fl3194_max_brightness(const struct device *dev, uint32_t led, uint32_t *max_brightness)
+{
+	*max_brightness = 255;
+
+	return 0;
+}
+
 static DEVICE_API(led, is31fl3194_led_api) = {
-	.set_brightness = is31fl3194_set_brightness,
+	.set_brightness_raw = is31fl3194_set_brightness_raw,
 	.get_info = is31fl3194_get_info,
 	.set_color = is31fl3194_set_color,
+	.max_brightness = is31fl3194_max_brightness,
 };
 
 #define COLOR_MAPPING(led_node_id)						\

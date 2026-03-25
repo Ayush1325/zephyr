@@ -121,8 +121,8 @@ static int ht16k33_led_blink(const struct device *dev, uint32_t led,
 	return 0;
 }
 
-static int ht16k33_led_set_brightness(const struct device *dev, uint32_t led,
-				      uint8_t value)
+static int ht16k33_led_set_brightness_raw(const struct device *dev, uint32_t led,
+				      uint32_t value)
 {
 	ARG_UNUSED(led);
 
@@ -130,7 +130,11 @@ static int ht16k33_led_set_brightness(const struct device *dev, uint32_t led,
 	uint8_t dim;
 	uint8_t cmd;
 
-	dim = (value * (HT16K33_DIMMING_LEVELS - 1)) / LED_BRIGHTNESS_MAX;
+	if (value > (HT16K33_DIMMING_LEVELS - 1)) {
+		return -EINVAL;
+	}
+
+	dim = value;
 	cmd = HT16K33_CMD_DIMMING_SET | dim;
 
 	if (i2c_write_dt(&config->i2c, &cmd, sizeof(cmd))) {
@@ -186,6 +190,13 @@ static int ht16k33_led_on(const struct device *dev, uint32_t led)
 static int ht16k33_led_off(const struct device *dev, uint32_t led)
 {
 	return ht16k33_led_set_state(dev, led, false);
+}
+
+static int ht16k33_max_brightness(const struct device *dev, uint32_t led, uint32_t *max_brightness)
+{
+	*max_brightness = HT16K33_DIMMING_LEVELS - 1;
+
+	return 0;
 }
 
 #ifdef CONFIG_HT16K33_KEYSCAN
@@ -400,7 +411,8 @@ static int ht16k33_init(const struct device *dev)
 
 static DEVICE_API(led, ht16k33_leds_api) = {
 	.blink = ht16k33_led_blink,
-	.set_brightness = ht16k33_led_set_brightness,
+	.set_brightness_raw = ht16k33_led_set_brightness_raw,
+	.max_brightness = ht16k33_max_brightness,
 	.on = ht16k33_led_on,
 	.off = ht16k33_led_off,
 };

@@ -26,6 +26,7 @@
 #define IS31FL3216A_REG_FRAME_START	0xB7
 
 #define IS31FL3216A_MAX_LEDS		16
+#define IS31FL3216A_MAX_BRIGHTNESS	0xFFu
 
 LOG_MODULE_REGISTER(is31fl3216a, CONFIG_LED_LOG_LEVEL);
 
@@ -103,8 +104,8 @@ static int is31fl3216a_led_write_channels(const struct device *dev,
 	return is31fl3216a_update_pwm(&config->i2c);
 }
 
-static int is31fl3216a_led_set_brightness(const struct device *dev,
-					  uint32_t led, uint8_t value)
+static int is31fl3216a_led_set_brightness_raw(const struct device *dev,
+					  uint32_t led, uint32_t value)
 {
 	const struct is31fl3216a_cfg *config = dev->config;
 	uint8_t pwm_reg = IS31FL3216A_REG_PWM_LAST - led;
@@ -115,13 +116,24 @@ static int is31fl3216a_led_set_brightness(const struct device *dev,
 		return -EINVAL;
 	}
 
-	pwm_value = is31fl3216a_brightness_to_pwm(value);
+	if (value > 0xFF) {
+		return -EINVAL;
+	}
+
+	pwm_value = value;
 	status = is31fl3216a_write_reg(&config->i2c, pwm_reg, pwm_value);
 	if (status < 0) {
 		return status;
 	}
 
 	return is31fl3216a_update_pwm(&config->i2c);
+}
+
+static int is31fl3216a_led_max_brightness(const struct device *dev, uint32_t led, uint32_t *max_brightness)
+{
+	*max_brightness = IS31FL3216A_MAX_BRIGHTNESS;
+
+	return 0;
 }
 
 static int is31fl3216a_init_registers(const struct i2c_dt_spec *i2c)
@@ -213,7 +225,8 @@ static int is31fl3216a_init(const struct device *dev)
 }
 
 static DEVICE_API(led, is31fl3216a_led_api) = {
-	.set_brightness = is31fl3216a_led_set_brightness,
+	.set_brightness_raw = is31fl3216a_led_set_brightness_raw,
+	.max_brightness = is31fl3216a_led_max_brightness,
 	.write_channels = is31fl3216a_led_write_channels
 };
 
