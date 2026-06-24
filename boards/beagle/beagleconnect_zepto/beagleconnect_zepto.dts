@@ -20,12 +20,14 @@
 		led0 = &led0;
 		sw0 = &button0;
 		watchdog0 = &wdt0;
+		rtc = &rtc;
 	};
 
 	chosen {
 		zephyr,sram = &sram0;
 		zephyr,flash = &flash0;
 		zephyr,console = &uart0;
+		zephyr,rtc = &rtc;
 	};
 
 	gpio_keys {
@@ -77,5 +79,9 @@
 };
 
 &wdt0 {
+	status = "okay";
+};
+
+&rtc {
 	status = "okay";
 };
