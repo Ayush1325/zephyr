@@ -67,8 +67,8 @@ static int rtc_ti_mspm0_set_time(const struct device *dev,
 		DL_RTC_Common_setCalendarHoursBinary(cfg->regs, timeptr->tm_hour);
 		DL_RTC_Common_setCalendarDayOfWeekBinary(cfg->regs, timeptr->tm_wday);
 		DL_RTC_Common_setCalendarDayOfMonthBinary(cfg->regs, timeptr->tm_mday);
-		DL_RTC_Common_setCalendarMonthBinary(cfg->regs, timeptr->tm_mon);
-		DL_RTC_Common_setCalendarYearBinary(cfg->regs, timeptr->tm_year);
+		DL_RTC_Common_setCalendarMonthBinary(cfg->regs, timeptr->tm_mon + 1);
+		DL_RTC_Common_setCalendarYearBinary(cfg->regs, timeptr->tm_year + 1900);
 	}
 
 	return 0;
@@ -89,9 +89,10 @@ static int rtc_ti_mspm0_get_time(const struct device *dev,
 		timeptr->tm_min  = DL_RTC_Common_getCalendarMinutesBinary(cfg->regs);
 		timeptr->tm_hour = DL_RTC_Common_getCalendarHoursBinary(cfg->regs);
 		timeptr->tm_mday = DL_RTC_Common_getCalendarDayOfMonthBinary(cfg->regs);
-		timeptr->tm_mon  = DL_RTC_Common_getCalendarMonthBinary(cfg->regs);
-		timeptr->tm_year = DL_RTC_Common_getCalendarYearBinary(cfg->regs);
+		timeptr->tm_mon  = DL_RTC_Common_getCalendarMonthBinary(cfg->regs) - 1;
+		timeptr->tm_year = DL_RTC_Common_getCalendarYearBinary(cfg->regs) - 1900;
 		timeptr->tm_wday = DL_RTC_Common_getCalendarDayOfWeekBinary(cfg->regs);
+		timeptr->tm_yday = -1;
 		timeptr->tm_nsec = 0;
 		timeptr->tm_isdst = -1;
 	}
