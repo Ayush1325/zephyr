@@ -76,6 +76,9 @@ static int rtc_ti_mspm0_set_time(const struct device *dev,
         	    RTC_DAY_DOW_MASK | RTC_DAY_DOMBIN_MASK);
 		DL_RTC_Common_setCalendarMonthBinary(cfg->regs, timeptr->tm_mon + 1);
 		DL_RTC_Common_setCalendarYearBinary(cfg->regs, timeptr->tm_year + 1900);
+		/* Writes take ~ 2 to 3 RTCCLK cycles (32 kHz) to take effect. Approximate delay of
+		 * 92us */
+		k_busy_wait(92);
 	}
 
 	return 0;
