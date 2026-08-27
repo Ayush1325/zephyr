@@ -12,6 +12,18 @@ config HAS_COVERAGE_SUPPORT
 config QEMU_ICOUNT_SHIFT
 	default 6 if QEMU_ICOUNT
 
+# The S-mode variants have no defconfig of their own that turns SMP on, so give
+# CONFIG_SMP=y a second hart to actually run on. QEMU is launched with as many
+# harts as this asks for, and the SBI starts the extra ones on request.
+config MP_MAX_NUM_CPUS
+	default 2 if SMP && BOARD_QEMU_RISCV64_QEMU_VIRT_RISCV64_OPENSBI
+
+# Same reason the smp variant turns it off in its defconfig: icount serialises
+# the harts onto one deterministic timeline, which turns every cross-CPU
+# spin-wait into a very long wait.
+config QEMU_ICOUNT
+	default n if SMP && BOARD_QEMU_RISCV64_QEMU_VIRT_RISCV64_OPENSBI
+
 configdefault ETH_DRIVER
 	default y
 

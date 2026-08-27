@@ -39,10 +39,28 @@ extern "C" {
 
 /* IRQs 0-15 (MCAUSE interrupt=1) */
 
+/** Supervisor Software Interrupt */
+#define RISCV_IRQ_SSOFT 1
 /** Machine Software Interrupt */
 #define RISCV_IRQ_MSOFT 3
+/** Supervisor External Interrupt */
+#define RISCV_IRQ_SEXT  9
 /** Machine External Interrupt */
 #define RISCV_IRQ_MEXT  11
+
+/*
+ * Interrupt causes are per privilege level in RISC-V: a hart running in
+ * S-mode takes the supervisor software/external interrupts, not the machine
+ * ones. Use these aliases wherever the kernel connects or enables one of those
+ * for itself, so the right cause is used whatever privilege level it runs at.
+ */
+#ifdef CONFIG_RISCV_S_MODE
+#define RISCV_IRQ_SOFT RISCV_IRQ_SSOFT
+#define RISCV_IRQ_EXT  RISCV_IRQ_SEXT
+#else
+#define RISCV_IRQ_SOFT RISCV_IRQ_MSOFT
+#define RISCV_IRQ_EXT  RISCV_IRQ_MEXT
+#endif
 
 #ifdef CONFIG_64BIT
 #define RISCV_MCAUSE_IRQ_POS          63U

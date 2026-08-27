@@ -33,6 +33,13 @@ extern "C" {
 
 #ifndef _ASMLANGUAGE
 
+#if defined(CONFIG_RISCV_S_MODE) && defined(CONFIG_SMP)
+/* Hart id of the boot hart, latched by the boot code in reset.S while it was
+ * still available, since S-mode cannot read mhartid. See arch/riscv/core/smp.c.
+ */
+extern unsigned long riscv_boot_hartid;
+#endif
+
 static ALWAYS_INLINE void arch_kernel_init(void)
 {
 #if defined(CONFIG_THREAD_LOCAL_STORAGE) && !defined(CONFIG_STACK_CANARIES_TLS_PREPEND)
@@ -46,7 +53,15 @@ static ALWAYS_INLINE void arch_kernel_init(void)
 #endif
 #endif
 #ifdef CONFIG_SMP
+#ifdef CONFIG_RISCV_S_MODE
+	/* mhartid is an M-mode CSR and traps from S-mode; use the id the boot
+	 * code latched from a0 (external SBI) or from mhartid before dropping
+	 * privilege (internal SBI).
+	 */
+	_kernel.cpus[0].arch.hartid = riscv_boot_hartid;
+#else
 	_kernel.cpus[0].arch.hartid = csr_read(mhartid);
+#endif
 	_kernel.cpus[0].arch.online = true;
 #endif
 #if ((CONFIG_MP_MAX_NUM_CPUS) > 1)

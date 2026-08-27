@@ -29,6 +29,12 @@ GTEXT(z_prep_c)
 GDATA(riscv_cpu_wake_flag)
 GDATA(riscv_cpu_sp)
 GTEXT(arch_secondary_cpu_init)
+#if defined(CONFIG_RISCV_S_MODE) && defined(CONFIG_SMP)
+GDATA(riscv_boot_hartid)
+#endif
+#if defined(CONFIG_RISCV_S_MODE_EXTERNAL_SBI) && (CONFIG_MP_MAX_NUM_CPUS > 1)
+GDATA(riscv_secondary_boot)
+#endif
 #ifdef CONFIG_RISCV_S_MODE_INTERNAL_SBI
 GTEXT(__m_mode_sbi_handler)
 #endif
@@ -80,19 +86,42 @@ tls_skip\@:
  * the C domain
  */
 SECTION_FUNC(TEXT, __initialize)
-#ifndef CONFIG_RISCV_S_MODE_EXTERNAL_SBI
+#ifdef CONFIG_RISCV_S_MODE_EXTERNAL_SBI
 	/*
-	 * When entered directly in S-mode by an external bootloader/SBI, a0
+	 * Entered directly in S-mode by an external bootloader/SBI, so a0
 	 * already holds the hart id per the RISC-V S-mode boot protocol
-	 * (a0=hartid, a1=dtb), and mhartid would trap, so only read it here.
+	 * (a0=hartid, a1=dtb) and mhartid would trap; leave a0 as it is.
+	 *
+	 * Which hart id that is says nothing about whether this is the boot
+	 * hart, though: firmware releases exactly one hart of its own choosing
+	 * into the payload and parks the rest until an SBI HSM hart_start asks
+	 * for one, so the boot hart need not be CONFIG_RV_BOOT_HART. What does
+	 * tell the two apart is riscv_secondary_boot, which arch_cpu_start()
+	 * sets before it ever asks for a hart -- long after the boot hart has
+	 * initialised .data.
 	 */
+#if CONFIG_MP_MAX_NUM_CPUS > 1
+	la t0, riscv_secondary_boot
+	lr t0, 0(t0)
+	bnez t0, boot_secondary_core
+#endif
+#else
 	csrr a0, mhartid
-#endif /* CONFIG_RISCV_S_MODE_EXTERNAL_SBI */
 	li t0, CONFIG_RV_BOOT_HART
 	beq a0, t0, boot_first_core
 	j boot_secondary_core
+#endif /* CONFIG_RISCV_S_MODE_EXTERNAL_SBI */
 
 boot_first_core:
+#if defined(CONFIG_RISCV_S_MODE) && defined(CONFIG_SMP)
+	/*
+	 * mhartid is an M-mode CSR, so once the kernel is running in S-mode it
+	 * can no longer ask the hardware which hart it is on. Latch the boot
+	 * hart id here, while a0 still holds it, for arch_kernel_init().
+	 */
+	la t0, riscv_boot_hartid
+	sr a0, 0(t0)
+#endif
 
 #ifdef CONFIG_FPU
 	/*
@@ -213,6 +242,24 @@ s_mode_entry:
 
 boot_secondary_core:
 #if CONFIG_MP_MAX_NUM_CPUS > 1
+#ifdef CONFIG_RISCV_S_MODE_EXTERNAL_SBI
+	/*
+	 * No wake-flag rendezvous on this path. Where every hart runs this code
+	 * from reset and has to be held back until the kernel is ready for it,
+	 * a hart under an external SBI only gets here because arch_cpu_start()
+	 * asked the SBI for it, and it asked only after publishing this CPU's
+	 * stack. So there is nothing to wait for.
+	 */
+#ifdef CONFIG_FPU
+	/*
+	 * Enable floating-point and reset the rounding mode, as the boot hart
+	 * does for itself above -- sstatus.FS is per hart and comes up Off.
+	 */
+	li t0, MSTATUS_FS_INIT
+	csrs sstatus, t0
+	fscsr zero
+#endif /* CONFIG_FPU */
+#else /* !CONFIG_RISCV_S_MODE_EXTERNAL_SBI */
 	la t0, riscv_cpu_wake_flag
 	li t1, -1
 	sr t1, 0(t0)
@@ -223,6 +270,7 @@ wait_secondary_wake_flag:
 	la t0, riscv_cpu_wake_flag
 	lr t0, 0(t0)
 	bne a0, t0, wait_secondary_wake_flag
+#endif /* CONFIG_RISCV_S_MODE_EXTERNAL_SBI */
 
 	/* Set up stack */
 	la t0, riscv_cpu_sp
@@ -235,6 +283,8 @@ wait_secondary_wake_flag:
 	mv a0, s2		/* restore hartid */
 #endif
 
+	/* Make the stack switch visible before arch_cpu_start() is released. */
+	fence rw, w
 	la t0, riscv_cpu_boot_flag
 	li t1, 1
 	sr t1, 0(t0)
