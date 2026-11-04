@@ -1,3 +1,9 @@
+config ZEPHYR_HAL_TI_MODULE
+	bool
+
+config ZEPHYR_HAL_TI_MODULE_BLOBS
+	bool
+
 # CC3220/CC32XX SDK HAL configuration
 
 config HAS_CC3220SDK

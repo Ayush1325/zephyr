@@ -1,0 +1,96 @@
+# Copyright (c) 2026 Ayush Singh <ayush@beagleboard.org>
+# SPDX-License-Identifier: Apache-2.0
+
+config BT_TI_CC13XX_CC26XX
+	bool "TI CC13xx/CC26xx BLE5-Stack HCI driver"
+	default y
+	depends on DT_HAS_TI_CC13XX_CC26XX_BT_HCI_ENABLED
+	depends on ZEPHYR_HAL_TI_MODULE_BLOBS || BUILD_ONLY_NO_BLOBS
+	depends on SOC_SERIES_CC13X2X7_CC26X2X7
+	depends on !IEEE802154_CC13XX_CC26XX && !IEEE802154_CC13XX_CC26XX_SUB_GHZ
+	select HAS_BT_CTLR
+	select BT_CTLR_LE_ENC_SUPPORT
+	select BT_CTLR_ECDH_SUPPORT
+	select BT_CTLR_PRIVACY_SUPPORT
+	select BT_CTLR_CONN_PARAM_REQ_SUPPORT
+	select BT_CTLR_EXT_REJ_IND_SUPPORT
+	select BT_CTLR_PER_INIT_FEAT_XCHG_SUPPORT
+	select BT_CTLR_DATA_LEN_UPDATE_SUPPORT
+	select BT_CTLR_PHY_UPDATE_SUPPORT
+	select BT_CTLR_PHY_2M_SUPPORT
+	select BT_CTLR_PHY_CODED_SUPPORT
+	select BT_CTLR_ADV_EXT_SUPPORT
+	select BT_CTLR_CHAN_SEL_2_SUPPORT
+	select BT_CTLR_CONN_RSSI_SUPPORT
+	# The TI RF driver needs PowerCC26X2_config from the SoC power code
+	select PM
+	help
+	  Use the TI BLE5-Stack, running on the same SoC, as Bluetooth LE
+	  controller. The prebuilt stack is fetched with
+	  "west blobs fetch hal_ti".
+
+	  With BT_PRIVACY, active scanning and connecting as central are not
+	  supported: the controller rejects own address type 0x03 (resolvable
+	  private address or random address) for these roles.
+
+if BT_TI_CC13XX_CC26XX
+
+config BT_TI_CC13XX_CC26XX_STACK_THREAD_STACK_SIZE
+	int "BLE5-Stack thread stack size"
+	default 4096
+	help
+	  Stack size of the thread running the BLE5-Stack link layer.
+
+config BT_TI_CC13XX_CC26XX_STACK_THREAD_PRIO
+	int "BLE5-Stack thread cooperative priority"
+	default 2
+	help
+	  Cooperative priority of the thread running the BLE5-Stack link
+	  layer. It must have a higher priority than the Bluetooth host
+	  threads.
+
+config BT_TI_CC13XX_CC26XX_APP_THREAD_STACK_SIZE
+	int "BLE5-Stack HCI transport thread stack size"
+	default 2048
+	help
+	  Stack size of the thread passing HCI packets between the Zephyr
+	  Bluetooth host and the BLE5-Stack.
+
+config BT_TI_CC13XX_CC26XX_APP_THREAD_PRIO
+	int "BLE5-Stack HCI transport thread cooperative priority"
+	default 3
+	help
+	  Cooperative priority of the thread passing HCI packets between the
+	  Zephyr Bluetooth host and the BLE5-Stack.
+
+config BT_TI_CC13XX_CC26XX_HEAP_SIZE
+	int "BLE5-Stack heap size"
+	default 12288
+	help
+	  Size of the heap used by the BLE5-Stack for messages and data
+	  buffers.
+
+config BT_TI_CC13XX_CC26XX_MQ_COUNT
+	int
+	default 6
+	help
+	  Number of message queues available to the BLE5-Stack OS layer.
+
+config BT_TI_CC13XX_CC26XX_MAX_NUM_PDU
+	int "Number of controller data buffers"
+	default 5
+
+# ACL packet count the controller reports in LE Read Buffer Size
+configdefault BT_BUF_ACL_TX_COUNT
+	default BT_TI_CC13XX_CC26XX_MAX_NUM_PDU
+
+config BT_TI_CC13XX_CC26XX_MAX_PDU_SIZE
+	int "Size of controller data buffers"
+	range 27 255
+	default 255
+
+config BT_TI_CC13XX_CC26XX_RL_SIZE
+	int "Resolving list size"
+	default 8
+
+endif # BT_TI_CC13XX_CC26XX
