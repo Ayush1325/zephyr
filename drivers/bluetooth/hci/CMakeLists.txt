@@ -25,6 +25,10 @@ if(CONFIG_DT_HAS_INFINEON_BLESS_HCI_ENABLED)
   zephyr_blobs_verify(MODULE hal_infineon REQUIRED)
 endif()
 
+if(CONFIG_DT_HAS_TI_CC13XX_CC26XX_BT_HCI_ENABLED)
+  zephyr_blobs_verify(MODULE hal_ti REQUIRED)
+endif()
+
 if(CONFIG_DT_HAS_RENESAS_BT_HCI_DA1469X_ENABLED)
   zephyr_blobs_verify(MODULE hal_renesas REQUIRED)
 endif()
@@ -61,6 +65,7 @@ zephyr_library_sources_ifdef(CONFIG_BT_SPI_ZEPHYR spi.c)
 zephyr_library_sources_ifdef(CONFIG_BT_STM32WB0 hci_stm32wb0.c)
 zephyr_library_sources_ifdef(CONFIG_BT_STM32WBA hci_stm32wba.c)
 zephyr_library_sources_ifdef(CONFIG_BT_STM32_IPM ipm_stm32wb.c)
+zephyr_library_sources_ifdef(CONFIG_BT_TI_CC13XX_CC26XX hci_ti_cc13xx_cc26xx.c)
 zephyr_library_sources_ifdef(CONFIG_SOC_NRF5340_CPUAPP nrf53_support.c)
 # zephyr-keep-sorted-stop
 
