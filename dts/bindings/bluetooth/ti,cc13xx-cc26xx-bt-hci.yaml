@@ -1,0 +1,18 @@
+# Copyright (c) 2026 Ayush Singh <ayush@beagleboard.org>
+# SPDX-License-Identifier: Apache-2.0
+
+title: TI CC13xx/CC26xx Bluetooth HCI
+
+description: |
+  Bluetooth HCI interface to the TI BLE5-Stack running as Bluetooth LE
+  controller on the same TI SimpleLink CC13xx/CC26xx SoC.
+
+compatible: "ti,cc13xx-cc26xx-bt-hci"
+
+include: bt-hci.yaml
+
+properties:
+  bt-hci-name:
+    default: "TI BLE5"
+  bt-hci-bus:
+    default: "virtual"
