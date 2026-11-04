@@ -1,0 +1,4 @@
+name: ti-cc13x2x7-ble
+description: Selects the TI BLE5-Stack Bluetooth LE controller on CC13x2x7/CC26x2x7 SoCs.
+append:
+  EXTRA_DTC_OVERLAY_FILE: ti-cc13x2x7-ble.overlay

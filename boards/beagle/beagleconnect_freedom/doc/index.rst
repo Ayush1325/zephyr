@@ -101,6 +101,19 @@ Connections and IOs
 | DIO30 | REF_SW_CTRL2 | Antenna mux SubG enable             |
 +-------+--------------+-------------------------------------+
 
+Bluetooth
+=========
+
+On BeagleConnect Freedom C7 (CC1352P7), the TI BLE5-Stack can be used as Bluetooth LE
+controller. Fetch the prebuilt stack and build with the :ref:`snippet-ti-cc13x2x7-ble` snippet:
+
+.. code-block:: console
+
+   west blobs fetch hal_ti
+   west build -b beagleconnect_freedom@C7/cc1352p7 -S ti-cc13x2x7-ble samples/bluetooth/peripheral_hr
+
+Bluetooth and the IEEE 802.15.4 drivers cannot be used at the same time.
+
 System requirements
 ===================
 
