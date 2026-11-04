@@ -1,0 +1,37 @@
+/*
+ * Copyright (c) 2026 Ayush Singh <ayush@beagleboard.org>
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * The BLE5-Stack ROM uses the first 0xFDF bytes of SRAM for its own data,
+ * so Zephyr must not place anything there.
+ */
+&sram0 {
+	reg = <0x20001000 (DT_SIZE_K(144) - 0x1000)>;
+};
+
+&bt_hci_ti {
+	status = "okay";
+};
+
+/*
+ * The BLE5-Stack uses the TRNG itself. Get entropy from the controller
+ * through HCI instead.
+ */
+&trng {
+	status = "disabled";
+};
+
+/ {
+	chosen {
+		zephyr,bt-hci = &bt_hci_ti;
+		zephyr,entropy = &bt_hci_entropy;
+	};
+
+	bt_hci_entropy: bt_hci_entropy {
+		compatible = "zephyr,bt-hci-entropy";
+		status = "okay";
+	};
+};
