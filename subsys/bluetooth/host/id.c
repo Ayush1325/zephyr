@@ -947,6 +947,96 @@ static int hci_id_add(uint8_t id, const bt_addr_le_t *addr, uint8_t peer_irk[16]
 static bt_addr_le_t pending_id_del_addrs[CONFIG_BT_MAX_PAIRED];
 static size_t pending_id_del_count;
 
+/* The resolving list holds the BT_HCI_QUIRK_RPA_NEEDS_RL_ENTRY entry, which has no peer */
+static bool rl_local_added;
+
+static bool rl_has_entries(void)
+{
+	return bt_dev.le.rl_entries != 0U || rl_local_added;
+}
+
+static int rl_local_add(void)
+{
+	uint8_t no_irk[16] = {0};
+	int err;
+
+	err = hci_id_add(BT_ID_DEFAULT, BT_ADDR_LE_ANY, no_irk);
+	rl_local_added = (err == 0);
+
+	return err;
+}
+
+void bt_id_rl_local_init(void)
+{
+	int err;
+
+	rl_local_added = false;
+
+	if (!bt_drv_quirk_rpa_needs_rl_entry() || bt_dev.le.rl_size == 0U) {
+		return;
+	}
+
+	/* Reserve the entry, the bonds use the remaining ones */
+	bt_dev.le.rl_size--;
+
+	err = rl_local_add();
+	if (err != 0) {
+		LOG_ERR("Failed to add local IRK to controller (err %d)", err);
+		return;
+	}
+
+	err = addr_res_enable(BT_HCI_ADDR_RES_ENABLE);
+	if (err != 0) {
+		LOG_ERR("Failed to enable address resolution (err %d)", err);
+	}
+}
+
+#if defined(CONFIG_BT_PRIVACY)
+static void keys_add_id(struct bt_keys *keys, void *data);
+
+/* Rebuild the resolving list with the local entry first after the IRK of the default identity
+ * changed. Advertising, scanning and initiating must be disabled.
+ */
+static void rl_local_irk_update(void)
+{
+	int err;
+
+	if (!rl_local_added) {
+		return;
+	}
+
+	err = addr_res_enable(BT_HCI_ADDR_RES_DISABLE);
+	if (err != 0) {
+		LOG_ERR("Failed to disable address resolution (err %d)", err);
+		return;
+	}
+
+	err = bt_hci_cmd_send_sync(BT_HCI_OP_LE_CLEAR_RL, NULL, NULL);
+	if (err != 0) {
+		LOG_ERR("Failed to clear resolving list (err %d)", err);
+		goto done;
+	}
+
+	/* The rebuilt list holds none of the queued removals */
+	bt_dev.le.rl_entries -= (uint8_t)pending_id_del_count;
+	pending_id_del_count = 0U;
+
+	err = rl_local_add();
+	if (err != 0) {
+		LOG_ERR("Failed to add local IRK to controller (err %d)", err);
+	}
+
+	if (bt_dev.le.rl_entries <= bt_dev.le.rl_size) {
+		bt_keys_foreach_type(BT_KEYS_ALL, keys_add_id, NULL);
+	}
+
+done:
+	if (rl_has_entries()) {
+		(void)addr_res_enable(BT_HCI_ADDR_RES_ENABLE);
+	}
+}
+#endif /* CONFIG_BT_PRIVACY */
+
 static bool id_del(const bt_addr_le_t *addr, struct bt_keys *keys);
 
 static void pending_id_update(struct bt_keys *keys, void *data)
@@ -1115,7 +1205,7 @@ void bt_id_add(struct bt_keys *keys)
 #endif /* CONFIG_BT_OBSERVER */
 
 	/* If there are any existing entries address resolution will be on */
-	if (bt_dev.le.rl_entries) {
+	if (rl_has_entries()) {
 		err = addr_res_enable(BT_HCI_ADDR_RES_DISABLE);
 		if (err) {
 			LOG_WRN("Failed to disable address resolution");
@@ -1138,6 +1228,15 @@ void bt_id_add(struct bt_keys *keys)
 		if (err) {
 			LOG_ERR("Failed to clear resolution list");
 			goto done;
+		}
+
+		if (rl_local_added) {
+			err = rl_local_add();
+			if (err != 0) {
+				LOG_ERR("Failed to add local IRK to controller");
+			} else {
+				enable_controller_res = true;
+			}
 		}
 
 		bt_dev.le.rl_entries++;
@@ -1320,7 +1419,7 @@ static bool id_del(const bt_addr_le_t *addr, struct bt_keys *keys)
 
 done:
 	/* Only re-enable if there are entries to do resolving with */
-	if (bt_dev.le.rl_entries) {
+	if (rl_has_entries()) {
 		addr_res_enable(BT_HCI_ADDR_RES_ENABLE);
 	}
 
@@ -1696,6 +1795,12 @@ int bt_id_reset_irk(uint8_t id, uint8_t *irk)
 #if defined(CONFIG_BT_RPA_SHARING)
 	bt_addr_copy(&bt_dev.rpa[id], BT_ADDR_NONE);
 #endif
+
+#if defined(CONFIG_BT_SMP)
+	if (id == BT_ID_DEFAULT && bt_drv_quirk_rpa_needs_rl_entry()) {
+		rl_local_irk_update();
+	}
+#endif /* CONFIG_BT_SMP */
 
 	if (IS_ENABLED(CONFIG_BT_SETTINGS)) {
 		(void)bt_settings_store_irk();

@@ -4949,6 +4949,11 @@ void bt_finalize_init(int err)
 		return;
 	}
 
+	/* The identities are final here */
+	if (err == 0 && bt_drv_quirk_rpa_needs_rl_entry()) {
+		bt_id_rl_local_init();
+	}
+
 	if (err == 0) {
 		if (IS_ENABLED(CONFIG_BT_OBSERVER)) {
 			bt_scan_reset();

@@ -704,4 +704,11 @@ static inline bool bt_drv_quirk_no_adv_term_on_dir_timeout(void)
 				 no_adv_term_on_dir_timeout);
 }
 
+static inline bool bt_drv_quirk_rpa_needs_rl_entry(void)
+{
+	/* The resolving list is only managed with SMP */
+	return IS_ENABLED(CONFIG_BT_SMP) && IS_ENABLED(CONFIG_BT_PRIVACY) &&
+	       DT_ENUM_HAS_VALUE(DT_CHOSEN(zephyr_bt_hci), bt_hci_quirks, rpa_needs_rl_entry);
+}
+
 void bt_tx_irq_raise(void);

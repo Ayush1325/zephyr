@@ -89,6 +89,16 @@ enum {
 	 * advertising for the end of the new advertising.
 	 */
 	BT_HCI_QUIRK_NO_ADV_TERM_ON_DIR_TIMEOUT = BIT(3),
+	/** The controller generates the local resolvable private address for own address types
+	 * 0x02 and 0x03 only from a resolving list entry with a local IRK. It does not fall back
+	 * to the random address set by the host, so active scanning and initiating fail without
+	 * one.
+	 *
+	 * With privacy, the host keeps a resolving list entry with the IRK of the default
+	 * identity and an all-zero public peer identity address as the first entry, and reserves
+	 * one resolving list entry for it.
+	 */
+	BT_HCI_QUIRK_RPA_NEEDS_RL_ENTRY = BIT(4),
 };
 
 #define BT_DT_HCI_QUIRK_OR(node_id, prop, idx) \

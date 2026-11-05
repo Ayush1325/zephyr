@@ -211,6 +211,9 @@ Other notable changes
 
   * :kconfig:option:`CONFIG_BT_PRIVACY` can now be enabled in Broadcaster- and Observer-only builds,
     without :kconfig:option:`CONFIG_BT_SMP`.
+  * Added the ``rpa-needs-rl-entry`` HCI quirk for controllers that generate the local resolvable
+    private address only from a resolving list entry. With privacy, the host keeps an entry with
+    the local IRK in the resolving list.
 
 ..
   Any more descriptive subsystem or driver changes. Do you really want to write
