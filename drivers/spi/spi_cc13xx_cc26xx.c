@@ -31,6 +31,9 @@ struct spi_cc13xx_cc26xx_config {
 
 struct spi_cc13xx_cc26xx_data {
 	struct spi_context ctx;
+#ifdef CONFIG_PM
+	Power_NotifyObj post_notify;
+#endif
 };
 
 #define CPU_FREQ DT_PROP(DT_PATH(cpus, cpu_0), clock_frequency)
@@ -235,6 +238,39 @@ static int spi_cc13xx_cc26xx_pm_action(const struct device *dev,
 }
 #endif /* CONFIG_PM_DEVICE */
 
+#ifdef CONFIG_PM
+/*
+ * The SSI loses its configuration in standby. Force the next transfer to
+ * configure it again. Standby is blocked while a transfer is in progress.
+ */
+static int spi_cc13xx_cc26xx_post_notify(unsigned int event_type, uintptr_t event_arg,
+					 uintptr_t client_arg)
+{
+	const struct device *dev = (const struct device *)client_arg;
+	struct spi_cc13xx_cc26xx_data *data = dev->data;
+
+	ARG_UNUSED(event_arg);
+
+	if (event_type == PowerCC26XX_AWAKE_STANDBY) {
+		data->ctx.config = NULL;
+	}
+
+	return Power_NOTIFYDONE;
+}
+
+static void spi_cc13xx_cc26xx_register_notify(const struct device *dev)
+{
+	struct spi_cc13xx_cc26xx_data *data = dev->data;
+
+	Power_registerNotify(&data->post_notify, PowerCC26XX_AWAKE_STANDBY,
+			     spi_cc13xx_cc26xx_post_notify, (uintptr_t)dev);
+}
+#else
+static void spi_cc13xx_cc26xx_register_notify(const struct device *dev)
+{
+	ARG_UNUSED(dev);
+}
+#endif /* CONFIG_PM */
 
 static DEVICE_API(spi, spi_cc13xx_cc26xx_driver_api) = {
 	.transceive = spi_cc13xx_cc26xx_transceive,
@@ -305,6 +341,7 @@ static DEVICE_API(spi, spi_cc13xx_cc26xx_driver_api) = {
 		struct spi_cc13xx_cc26xx_data *data = dev->data;		\
 		int err;							\
 		SPI_CC13XX_CC26XX_POWER_SPI(n);					\
+		spi_cc13xx_cc26xx_register_notify(dev);				\
 										\
 		err = spi_context_cs_configure_all(&data->ctx);			\
 		if (err < 0) {							\
